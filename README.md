@@ -30,4 +30,5 @@ The current falconre framework is far from complete, so some fixes are to be exp
 program works. Current fixes are listed below:
 
 - Add `xorps` instruction. Minimal fix to make it able to find the check function.
-- Add xmm0 registers to X86. It seems that falconre recognize AMD64 to X86.
+- Add xmm0 registers to X86.
+- Change Pe::pe() to public.

@@ -10,22 +10,16 @@ use std::error::Error;
 
 fn read_wstring(pe: &Pe, address: u64) -> Option<String> {
     let mut wstr = vec![];
-
     let mut shift = 0;
     loop {
         let b1 = pe.memory().ok()?.get8(address + shift)?;
         let b2 = pe.memory().ok()?.get8(address + shift + 1)?;
-        if b2 != 0 {
+        if b2 != 0 || (b1 == 0 && b2 == 0) {
             break;
         }
         shift += 2;
         wstr.push(b1);
-
-        if b1 == 0 && b2 == 0 {
-            break;
-        }
     }
-
     String::from_utf8(wstr).ok()
 }
 
@@ -40,13 +34,11 @@ fn get_constant_inst(instruction: &Instruction) -> Option<u64> {
 
 fn find_fix_function(pe: &Pe) -> Result<Function, Box<dyn Error>> {
     let program = pe.program_recursive()?;
-
     for function in program.functions() {
         for block in function.blocks() {
             for instruction in block.instructions() {
                 let wstr = get_constant_inst(instruction)
                     .and_then(|c| read_wstring(&pe, c));
-
                 if Some(String::from("This Game is Japan Only\n\n")) == wstr {
                     return Ok(function.clone());
                 }
@@ -63,12 +55,11 @@ fn find_offset_to(pe: &Pe, function: &Function) -> Option<u64> {
     goblin_pe.sections
         .iter()
         .find_map(|section| {
-            let file_offset = section.pointer_to_raw_data as u64;
             let file_size = section.size_of_raw_data as u64;
-
             let section_address = section.virtual_address as u64 + goblin_pe.image_base as u64;
             let section_address_end = section_address + file_size;
             if function.address() >= section_address && function.address() < section_address_end {
+                let file_offset = section.pointer_to_raw_data as u64;
                 Some(function.address() - section_address + file_offset)
             } else {
                 None
